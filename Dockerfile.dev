@@ -1,0 +1,41 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HERMES_HOME=/root/.hermes
+ENV UV_NO_CONFIG=1
+
+ARG HERMES_BRANCH=main
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git build-essential python3-dev libffi-dev \
+    ripgrep ffmpeg nodejs npm \
+    openssh-client openssh-server \
+    python3-openpyxl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://raw.githubusercontent.com/darmarius/hermes-agent/main/scripts/install.sh | \
+    bash -s -- --skip-setup --branch ${HERMES_BRANCH}
+
+RUN curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path && \
+    ln -sf /root/.opencode/bin/opencode /usr/local/bin/opencode
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libcairo2 libcups2 \
+    libdbus-1-3 libdrm2 libgbm1 libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 \
+    libwayland-client0 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 \
+    libxfixes3 libxkbcommon0 libxrandr2 xvfb \
+    fonts-noto-color-emoji fonts-unifont fonts-liberation fonts-ipafont-gothic \
+    fonts-wqy-zenhei fonts-tlwg-loma-otf fonts-freefont-ttf xfonts-cyrillic xfonts-scalable \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y -qq gh \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /root/.hermes
+
+WORKDIR /root/.hermes
+
+HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
+    CMD hermes doctor || exit 1
+
+CMD ["hermes"]
